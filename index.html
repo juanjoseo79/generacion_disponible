@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balance de Capacidad — Máxima Nocturna · GOE</title>
+<style>
+  :root{ --navy:#1F3864; --blue:#104999; --accent:#00A2FF; --grey:#595959; }
+  *{ box-sizing:border-box; }
+  body{ font-family:Arial,Helvetica,sans-serif; margin:0; color:#1a1a1a; background:#f4f6fa; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:16px; }
+  .hdr{ background:var(--navy); color:#fff; padding:10px 16px; font-weight:bold; font-size:17px; }
+  .sub{ background:var(--blue); color:#fff; padding:4px 16px; font-size:12px; }
+  .tabs{ display:flex; gap:4px; margin-top:12px; }
+  .tab{ padding:8px 18px; background:#dde4f0; color:var(--navy); border:none; cursor:pointer; font-size:13px; font-weight:bold; border-radius:5px 5px 0 0; }
+  .tab.active{ background:#fff; color:var(--navy); border-bottom:2px solid var(--accent); }
+  .panel{ background:#fff; padding:16px; border-radius:0 6px 6px 6px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .row{ display:flex; gap:16px; flex-wrap:wrap; }
+  .col{ flex:1 1 340px; min-width:300px; }
+  .secc{ background:#eef2f8; color:var(--navy); font-weight:bold; font-size:12px; padding:5px 8px; margin:0 0 10px; border-left:3px solid var(--navy); }
+  label{ display:block; font-size:11px; color:#555; margin-bottom:3px; }
+  input,select{ width:100%; padding:5px 7px; border:1px solid #c5d0e4; border-radius:4px; font-size:13px; font-family:Arial; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .nota{ font-size:10px; color:#2E7D32; margin-top:2px; }
+  .kpis{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .kpi{ flex:1 1 120px; border:1px solid #e0e6f2; border-radius:4px; padding:8px 10px; background:#fafbfe; }
+  .kpi .l{ font-size:10px; color:#777; margin-bottom:3px; }
+  .kpi .v{ font-size:16px; font-weight:bold; color:var(--navy); }
+  .kpi .s{ font-size:12px; font-weight:bold; }
+  .list{ max-height:340px; overflow-y:auto; border:1px solid #d9e0ee; border-radius:4px; }
+  .lhead{ display:flex; padding:3px 8px; background:#eef2f8; position:sticky; top:0; font-size:10px; font-weight:bold; color:var(--navy); }
+  .lrow{ display:flex; align-items:center; padding:2px 8px; border-bottom:1px solid #eef2f8; }
+  .lrow.on{ background:#f0f4fb; }
+  .lrow .u{ flex:1; font-size:12px; }
+  .lrow .cbx{ width:46px; text-align:center; }
+  .chip{ font-size:10px; padding:2px 7px; border-radius:3px; color:#fff; }
+  .btn{ background:var(--navy); color:#fff; border:none; padding:9px 18px; border-radius:4px; font-size:13px; font-weight:bold; cursor:pointer; }
+  .btn.b2{ background:var(--blue); }
+  .btn.b3{ background:#2E7D32; }
+  .msg{ font-size:12px; }
+  canvas{ max-width:100%; height:auto; border:1px solid #e5e5e5; }
+  table.mnt{ width:100%; border-collapse:collapse; font-size:12px; }
+  table.mnt th{ background:var(--navy); color:#fff; padding:5px; text-align:left; font-size:11px; position:sticky; top:0; }
+  table.mnt td{ border-bottom:1px solid #eef2f8; padding:3px 5px; }
+  table.mnt input{ width:80px; padding:2px 4px; }
+  .mnt-wrap{ max-height:460px; overflow-y:auto; border:1px solid #d9e0ee; border-radius:4px; }
+  .foot{ font-size:11px; color:#666; line-height:1.5; margin-top:12px; }
+  .warn{ font-size:11px; color:#9C2A2A; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">Balance de Capacidad — Máxima Nocturna</div>
+  <div class="sub">Herramienta GOE · tablas técnicas (PMAX, CFI, curvas cota–Pmax) embebidas y editables</div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="balance" onclick="switchTab('balance')">Balance</button>
+    <button class="tab" data-tab="mnt" onclick="switchTab('mnt')">Mantenimiento de datos</button>
+  </div>
+
+  <!-- ===================== PANEL BALANCE ===================== -->
+  <div class="panel" id="panel-balance">
+    <div class="row">
+      <div class="col">
+        <div class="secc">Parámetros de entrada</div>
+        <div class="grid2">
+          <div><label>Cota CGRA (msnm)</label><input type="number" step="0.01" id="cotaCGRA" value="237.06" oninput="render()"><div class="nota" id="notaCGRA"></div></div>
+          <div><label>Cota GUAJ (msnm)</label><input type="number" step="0.01" id="cotaGUAJ" value="420.92" oninput="render()"><div class="nota" id="notaGUAJ"></div></div>
+          <div><label>Demanda máxima (MW)</label><input type="number" step="1" id="demanda" value="1301" oninput="render()"></div>
+          <div><label>Reserva rodante (%)</label><input type="number" step="0.5" id="rrPct" value="7" oninput="render()"><div class="nota" id="notaRR"></div></div>
+          <div style="grid-column:1/-1"><label>Fecha/hora de la demanda máxima</label><input type="text" id="fechaDem" value="22-ago 19:30" oninput="render()"></div>
+        </div>
+
+        <div class="secc">Unidades indisponibles</div>
+        <div style="font-size:11px;color:#555;margin-bottom:6px">Marque la categoría de cada unidad fuera. Los <b>menores</b> se descuentan solo si siguen fuera a la máxima nocturna (criterio del analista).</div>
+        <div id="chips" style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap"></div>
+        <input type="text" id="filtro" placeholder="Filtrar (ej: nepo, hilc, 5nov)…" oninput="renderList()" style="margin-bottom:8px">
+        <div class="list" id="list"></div>
+      </div>
+
+      <div class="col">
+        <div class="secc">Resultado</div>
+        <div class="kpis" id="kpis"></div>
+        <canvas id="cv" width="780" height="225"></canvas>
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn" onclick="descargarPNG()">Descargar PNG</button>
+          <button class="btn b2" onclick="copiarPNG()">Copiar imagen</button>
+          <span class="msg" id="msg"></span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#555;display:flex;align-items:center;gap:6px">
+          <span>Resolución:</span>
+          <select id="escala" style="width:auto" onchange="render()">
+            <option value="3">Media</option>
+            <option value="4" selected>Alta</option>
+            <option value="6">Muy alta</option>
+          </select>
+        </div>
+        <div class="foot">Base en PMAX (hidro, térmica, GNL, geotérmica) y CFI para eólica. CGRA y GUAJ ajustadas por cota actual. Excluye FV e ingenios (fuera de zafra). Margen de reserva = (Disponible − Demanda) / Disponible.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PANEL MANTENIMIENTO ===================== -->
+  <div class="panel" id="panel-mnt" style="display:none">
+    <div class="secc">Mantenimiento de datos técnicos (PMAX / CFI por unidad)</div>
+    <div style="font-size:12px;color:#555;margin-bottom:10px">
+      Edite la potencia por unidad. Hidro se toma como PMAX; térmica/GNL/geotérmica como PMAX; eólica como CFI. CGRA y GUAJ se calculan por cota (no editables aquí; use la pestaña Balance). Los cambios se guardan en este navegador.
+      <span class="warn">Cambiar estos valores altera todos los cálculos.</span>
+    </div>
+    <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <input type="text" id="filtroMnt" placeholder="Filtrar unidad…" style="max-width:220px" oninput="renderMnt()">
+      <button class="btn b3" onclick="guardarMnt()">Guardar cambios</button>
+      <button class="btn" style="background:#8a6d1e" onclick="restaurarMnt()">Restaurar valores de fábrica</button>
+      <span class="msg" id="msgMnt"></span>
+    </div>
+    <div class="mnt-wrap">
+      <table class="mnt">
+        <thead><tr><th>Unidad</th><th>Tecnología</th><th>PMAX/CFI (MW)</th></tr></thead>
+        <tbody id="mntBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== DATOS TÉCNICOS (con posible override guardado) =====================
+const HIDRO_DEF = {
+  "guaj-u1":{pmax:19.8,cotaDep:"GUAJ"},"cgra-u1":{pmax:86.4,cotaDep:"CGRA"},"cgra-u2":{pmax:86.4,cotaDep:"CGRA"},
+  "5nov-u1":{pmax:20},"5nov-u2":{pmax:20},"5nov-u3":{pmax:20},"5nov-u4":{pmax:18},"5nov-u5":{pmax:21.4},"5nov-u6":{pmax:40.07},"5nov-u7":{pmax:40.07},
+  "15se-u1":{pmax:92.8},"15se-u2":{pmax:92.8},"3feb-u1":{pmax:32.4},"3feb-u2":{pmax:32.4}
+};
+const CURVA_CGRA=[[228,61],[229,63],[230,65],[231,66.5],[232,68.5],[233,70.5],[234,72.5],[235,74.5],[236,77.5],[237,79],[238,81.5],[239,83.5],[240,85],[241,86.4],[242,86.4],[243,86.4]];
+const CURVA_GUAJ=[[428.0,430.3,19.8],[427.0,428.0,19.0],[424.97,427.0,18.0],[423.9,424.97,17.0],[423.4,423.9,16.0],[421.0,423.4,15.0],[420.0,421.0,12.0],[419.5,420.0,10.0]];
+const TERMICO_DEF={
+  "acaj-m1":16.2,"acaj-m2":16.2,"acaj-m3":16.2,"acaj-m4":16.2,"acaj-m5":15.7,"acaj-m6":16.2,"acaj-m7":16.5,"acaj-m8":16.5,"acaj-m9":16.5,
+  "acaj-u1":23.2,"acaj-u2":25.7,"acaj-u4":27.7,"acaj-u5":64.2,
+  "ahua-u1":22.5,"ahua-u2":22.4,"ahua-u3":29.3,"berl-u1":26.5,"berl-u2":26.1,"berl-u3":32.5,"berl-u4":6.3,"berl-u5":5.3,
+  "bore-m1":1.6,"bore-m2":1.6,"bore-m3":1.6,"bore-m4":1.6,"bore-m5":1.6,"bore-m6":1.6,"bore-m7":1.6,"bore-m8":1.6,
+  "edp-m1":18.6,"edp-m2":18.6,"edp-m3":18.6,"edp-m4":18.6,"edp-m5":18.6,"edp-m6":18.6,"edp-m7":18.6,"edp-m8":18.6,"edp-m9":18.6,"edp-m10":18.6,"edp-m11":18.6,"edp-m12":18.6,"edp-m13":18.6,"edp-m14":18.6,"edp-m15":18.6,"edp-m16":18.6,"edp-m17":18.6,"edp-m18":18.6,"edp-m19":18.6,"edp-u1":28.3,
+  "gcsa-m1":3.7,"gcsa-m2":3.7,"gcsa-m3":3.7,"hilc-m1":1.6,"hilc-m2":1.6,"hilc-m3":1.6,"hilc-m4":1.6,"holc-m1":6.5,
+  "nepo-m1":5.5,"nepo-m2":5.5,"nepo-m3":5.5,"nepo-m4":5.5,"nepo-m5":5.5,"nepo-m6":5.5,"nepo-m7":5.5,"nepo-m8":5.5,"nepo-m9":5.5,"nepo-m10":5.5,"nepo-m11":5.5,"nepo-m12":5.5,"nepo-m13":5.5,"nepo-m14":5.5,"nepo-m15":5.5,"nepo-m16":5.5,"nepo-m17":5.5,"nepo-m18":5.5,"nepo-m19":5.5,"nepo-m20":5.5,"nepo-m21":5.5,"nepo-m22":5.5,"nepo-m23":5.5,"nepo-m24":5.5,"nepo-m25":5.5,"nepo-m26":5.5,"nepo-m27":5.5,
+  "soya-m1":5.1,"soya-m2":5,"soya-m3":5.1,
+  "taln-m1":16.9,"taln-m2":16.9,"taln-m3":16.9,"taln-m4":8.4,"taln-m5":8.4,"taln-m6":8.4,"taln-m7":8.4,"taln-m8":8.4,"taln-m9":8.4,
+  "text-m1":3.2,"text-m2":3.3,"text-m3":6.4,"text-m4":6.6,"text-m5":6.8,"text-m6":7.3,"text-m7":6.8,
+  "tpto-m1":18,"tpto-m2":18,"tpto-m3":18,"tpto-m4":18
+};
+const EOLICO_DEF={"vent-g1":15.858};
+
+// overrides desde localStorage
+let HIDRO=JSON.parse(JSON.stringify(HIDRO_DEF)), TERMICO={...TERMICO_DEF}, EOLICO={...EOLICO_DEF};
+(function loadOverrides(){
+  try{
+    const o=JSON.parse(localStorage.getItem("goe_pmax_override")||"null");
+    if(o){ for(const k in o.hidro||{}) if(HIDRO[k]) HIDRO[k].pmax=o.hidro[k];
+           for(const k in o.term||{}) TERMICO[k]=o.term[k];
+           for(const k in o.eol||{}) EOLICO[k]=o.eol[k]; }
+  }catch(e){}
+})();
+
+const TECNOS=[
+  {key:"eolica",label:"Eólica",color:"#8FD0E8"},
+  {key:"geotermica",label:"Geotérmica",color:"#E08A2E"},
+  {key:"hidro",label:"Hidro",color:"#1F5FA8"},
+  {key:"gnl",label:"GNL",color:"#D98BB5"},
+  {key:"termica",label:"Térmica",color:"#B0453A"}
+];
+const CATS={falla:{label:"Falla",color:"#1F3864"},menor:{label:"Menor",color:"#6B8E23"},pamm:{label:"PAMM",color:"#9AA0A6"},antigua:{label:"Fallas antiguas",color:"#CFCFCF"}};
+const ORDEN_CAT=["falla","menor","pamm","antigua"];
+
+const ESTADO_INICIAL={"nepo-m19":"falla","nepo-m21":"falla","nepo-m23":"falla","nepo-m25":"falla","nepo-m26":"falla","nepo-m5":"falla","nepo-m2":"falla","nepo-m18":"falla","nepo-m27":"falla","nepo-m22":"falla","nepo-m24":"falla","nepo-m20":"falla","nepo-m11":"falla","nepo-m3":"falla","hilc-m1":"falla","hilc-m2":"falla","hilc-m3":"falla","hilc-m4":"falla","tpto-m1":"falla","tpto-m3":"falla","text-m4":"falla","text-m5":"falla","soya-m1":"falla","gcsa-m3":"falla","15se-u2":"pamm","nepo-m12":"pamm","berl-u3":"pamm","taln-m2":"pamm","5nov-u5":"pamm","soya-m2":"antigua","5nov-u4":"antigua","acaj-u2":"antigua"};
+let indisp={...ESTADO_INICIAL};
+
+// ===================== CÁLCULO =====================
+function pmaxCGRA(c){const t=CURVA_CGRA;if(c<=t[0][0])return t[0][1];if(c>=t[t.length-1][0])return t[t.length-1][1];for(let i=0;i<t.length-1;i++){const[c0,p0]=t[i],[c1,p1]=t[i+1];if(c>=c0&&c<=c1)return p0+((p1-p0)*(c-c0))/(c1-c0);}return t[t.length-1][1];}
+function pmaxGUAJ(c){for(const[inf,sup,p]of CURVA_GUAJ){if(c>=inf&&c<=sup)return p;}return c>430.3?19.8:10.0;}
+function cotas(){return{CGRA:parseFloat(document.getElementById("cotaCGRA").value)||0,GUAJ:parseFloat(document.getElementById("cotaGUAJ").value)||0};}
+function tecnologiaDe(u){ if(HIDRO[u])return"hidro"; if(EOLICO[u])return"eolica"; if(/^ahua-/.test(u)||/^berl-/.test(u))return"geotermica"; if(/^edp-/.test(u))return"gnl"; if(TERMICO[u])return"termica"; return"termica"; }
+function valorUnidad(u){ const ct=cotas();
+  if(HIDRO[u]){ const info=HIDRO[u]; if(info.cotaDep==="CGRA")return pmaxCGRA(ct.CGRA); if(info.cotaDep==="GUAJ")return pmaxGUAJ(ct.GUAJ); return info.pmax; }
+  if(TERMICO[u])return TERMICO[u]; if(EOLICO[u])return EOLICO[u]; return 0; }
+function todasUnidades(){ return [...Object.keys(HIDRO),...Object.keys(TERMICO),...Object.keys(EOLICO)]; }
+
+function calcular(){
+  const baseTec={eolica:0,geotermica:0,hidro:0,gnl:0,termica:0};
+  const indTec={eolica:0,geotermica:0,hidro:0,gnl:0,termica:0};
+  for(const u of todasUnidades()){ baseTec[tecnologiaDe(u)]+=valorUnidad(u); }
+  let F=0,M=0,P=0,A=0;
+  for(const u in indisp){ const v=valorUnidad(u); const t=tecnologiaDe(u); indTec[t]+=v;
+    const c=indisp[u]; if(c==="falla")F+=v; else if(c==="menor")M+=v; else if(c==="pamm")P+=v; else if(c==="antigua")A+=v; }
+  const dispTec={}; for(const t in baseTec) dispTec[t]=baseTec[t]-indTec[t];
+  const dem=parseFloat(document.getElementById("demanda").value)||0;
+  const rrPct=parseFloat(document.getElementById("rrPct").value)||0;
+  return {dispTec,F,M,P,A,dem,rrMW:rrPct/100*dem,rrPct};
+}
+
+// ===================== DIBUJO (con redondeo coherente y corchetes correctos) =====================
+function dibujar(scale){
+  const c=calcular();
+  const dispTecR={}; for(const t of TECNOS) dispTecR[t.key]=Math.round(c.dispTec[t.key]||0);
+  const F=Math.round(c.F),M=Math.round(c.M),P=Math.round(c.P),A=Math.round(c.A);
+  const dispR=Object.values(dispTecR).reduce((s,v)=>s+v,0);
+  const indR=F+M+P+A, baseR=dispR+indR, demR=Math.round(c.dem);
+  const margenMW=dispR-demR, margenPct=dispR>0?100*margenMW/dispR:0, rrR=Math.round(c.rrMW);
+
+  const W=780,H=225,mx=20,mr=165,GAP=30,plotW=W-mx-mr;
+  const escala=baseR>0?plotW/((baseR+GAP)*1.02):0;
+  const cv=document.getElementById("cv");
+  cv.width=W*scale; cv.height=H*scale;
+  const ctx=cv.getContext("2d");
+  ctx.setTransform(scale,0,0,scale,0,0);
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="high";
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
+  ctx.textBaseline="alphabetic";
+  const yBar=42,hBar=34,yDem=104;
+  const segTec=TECNOS.map(t=>({v:dispTecR[t.key],c:t.color,n:t.label}));
+  const segInd=[{v:F,c:"#1F3864",n:"Fallas"},{v:M,c:"#6B8E23",n:"Menores"},{v:P,c:"#9AA0A6",n:"PAMM"},{v:A,c:"#CFCFCF",n:"Fallas antiguas"}];
+
+  // tecnologías
+  let x=mx; const xDI=x;
+  for(const s of segTec){ const w=s.v*escala; if(w>0){ ctx.fillStyle=s.c; ctx.fillRect(x,yBar,w,hBar); ctx.strokeStyle="#fff"; ctx.lineWidth=1; ctx.strokeRect(x,yBar,w,hBar); if(w>42){ ctx.fillStyle="#fff"; ctx.font="bold 10px Arial"; ctx.textAlign="center"; ctx.fillText(s.n,x+w/2,yBar+21);} } x+=w; }
+  const xDF=x;
+  // corchete disponible (patitas hacia ABAJO, abrazando desde abajo)
+  ctx.strokeStyle="#999"; ctx.lineWidth=0.8; const yBrD=yBar+hBar+5;
+  ctx.beginPath(); ctx.moveTo(xDI,yBrD+4); ctx.lineTo(xDI,yBrD); ctx.lineTo(xDF,yBrD); ctx.lineTo(xDF,yBrD+4); ctx.stroke();
+  ctx.fillStyle="#2E7D32"; ctx.font="italic 8px Arial"; ctx.textAlign="center"; ctx.fillText("Potencia disponible "+dispR+" MW",(xDI+xDF)/2,yBrD+15);
+  // gap + indisponibles
+  x+=GAP*escala; const xI=x;
+  for(const s of segInd){ const w=s.v*escala; if(w>0){ ctx.fillStyle=s.c; ctx.fillRect(x,yBar,w,hBar); ctx.strokeStyle="#fff"; ctx.lineWidth=1; ctx.strokeRect(x,yBar,w,hBar); if(w>26){ ctx.fillStyle=s.c==="#CFCFCF"?"#555":"#fff"; ctx.font="bold 10px Arial"; ctx.textAlign="center"; ctx.fillText(s.v,x+w/2,yBar+21);} } x+=w; }
+  const xF=x;
+  ctx.strokeStyle="#999"; ctx.lineWidth=0.8; const yBr=yBar+hBar+5;
+  ctx.beginPath(); ctx.moveTo(xI,yBr+4); ctx.lineTo(xI,yBr); ctx.lineTo(xF,yBr); ctx.lineTo(xF,yBr+4); ctx.stroke();
+  ctx.fillStyle="#777"; ctx.font="italic 8px Arial"; ctx.textAlign="center"; ctx.fillText("Potencia indisponible "+indR+" MW",(xI+xF)/2,yBr+15);
+  ctx.fillStyle="#1F3864"; ctx.font="bold 10px Arial"; ctx.textAlign="left"; ctx.fillText("Capacidad nocturna "+baseR+" MW",x+8,yBar+21);
+
+  // demanda
+  const demX=mx+demR*escala;
+  ctx.fillStyle="#B0C4DE"; ctx.fillRect(mx,yDem,demR*escala,hBar); ctx.strokeStyle="#4A6FA5"; ctx.lineWidth=1; ctx.strokeRect(mx,yDem,demR*escala,hBar);
+  ctx.fillStyle="#1F3864"; ctx.font="bold 11px Arial"; ctx.textAlign="center"; ctx.fillText("Demanda máxima "+demR+" MW",mx+demR*escala/2,yDem+21);
+  // reserva rodante
+  const rrW=rrR*escala;
+  ctx.strokeStyle="#C79A2E"; ctx.lineWidth=1.1; ctx.setLineDash([3,2]); ctx.strokeRect(demX,yDem,rrW,hBar); ctx.setLineDash([]);
+  ctx.fillStyle="#8A6D1E"; ctx.font="8px Arial"; ctx.textAlign="center"; ctx.fillText("Reserva rodante "+c.rrPct+"% = "+rrR+" MW",demX+rrW/2,yDem+hBar+12);
+  // línea margen
+  ctx.strokeStyle="#9C2A2A"; ctx.lineWidth=1.6; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(demX,30); ctx.lineTo(demX,yDem+hBar+2); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="#9C2A2A"; ctx.font="bold 10px Arial"; ctx.textAlign="center"; ctx.fillText("Margen de reserva "+margenMW+" MW ("+margenPct.toFixed(1)+" %)",demX,24);
+  // leyenda
+  const yLeg=176; ctx.font="8.5px Arial"; ctx.textAlign="left"; let lx=mx;
+  for(const s of segTec){ ctx.fillStyle=s.c; ctx.fillRect(lx,yLeg-9,11,11); ctx.fillStyle="#333"; ctx.fillText(s.n,lx+14,yLeg); lx+=14+ctx.measureText(s.n).width+12; }
+  lx+=24;
+  for(const s of segInd){ ctx.fillStyle=s.c; ctx.fillRect(lx,yLeg-9,11,11); ctx.fillStyle="#333"; ctx.fillText(s.n,lx+14,yLeg); lx+=14+ctx.measureText(s.n).width+12; }
+
+  return {dispR,indR,baseR,margenMW,margenPct};
+}
+
+// ===================== RENDER UI =====================
+function render(){
+  const scale=parseInt(document.getElementById("escala").value)||4;
+  const ct=cotas();
+  document.getElementById("notaCGRA").textContent="Pmax/u: "+pmaxCGRA(ct.CGRA).toFixed(2)+" MW";
+  document.getElementById("notaGUAJ").textContent="Pmax/u: "+pmaxGUAJ(ct.GUAJ).toFixed(1)+" MW";
+  const dem=parseFloat(document.getElementById("demanda").value)||0;
+  const rrPct=parseFloat(document.getElementById("rrPct").value)||0;
+  document.getElementById("notaRR").textContent=(rrPct/100*dem).toFixed(1)+" MW";
+  const r=dibujar(scale);
+  document.getElementById("kpis").innerHTML=
+    kpi("Capacidad nocturna",r.baseR+" MW")+
+    kpi("Disponible",r.dispR+" MW","#2E7D32")+
+    kpi("Margen reserva",r.margenMW+" MW",r.margenPct<7?"#9C2A2A":"#1F3864",r.margenPct.toFixed(1)+" %");
+  renderList(); renderChips();
+}
+function kpi(l,v,color="#1F3864",s=""){ return `<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${color}">${v}</div>${s?`<div class="s" style="color:${color}">${s}</div>`:""}</div>`; }
+function renderChips(){
+  const cont={falla:0,menor:0,pamm:0,antigua:0}; for(const u in indisp) if(cont[indisp[u]]!=null) cont[indisp[u]]++;
+  document.getElementById("chips").innerHTML=ORDEN_CAT.map(c=>`<span class="chip" style="background:${CATS[c].color};color:${c==='antigua'?'#333':'#fff'}">${CATS[c].label}: ${cont[c]}</span>`).join("");
+}
+function renderList(){
+  const f=(document.getElementById("filtro").value||"").toLowerCase();
+  const us=todasUnidades().filter(u=>u.includes(f));
+  let html=`<div class="lhead"><span style="flex:1">Unidad · MW</span>`+ORDEN_CAT.map(c=>`<span style="width:46px;text-align:center">${CATS[c].label}</span>`).join("")+`</div>`;
+  for(const u of us){
+    html+=`<div class="lrow ${indisp[u]?'on':''}"><span class="u" style="font-weight:${indisp[u]?'bold':'normal'}">${u} <span style="color:#888;font-weight:normal">· ${valorUnidad(u).toFixed(1)}</span></span>`;
+    for(const c of ORDEN_CAT){ html+=`<span class="cbx"><input type="checkbox" ${indisp[u]===c?'checked':''} onchange="toggleCat('${u}','${c}')" style="accent-color:${CATS[c].color}"></span>`; }
+    html+=`</div>`;
+  }
+  document.getElementById("list").innerHTML=html;
+}
+function toggleCat(u,c){ if(indisp[u]===c) delete indisp[u]; else indisp[u]=c; render(); }
+
+// ===================== EXPORTAR =====================
+function descargarPNG(){ const cv=document.getElementById("cv"); cv.toBlob(b=>{ if(!b){msg("No se pudo generar el PNG");return;} const a=document.createElement("a"); a.download="balance_capacidad.png"; a.href=URL.createObjectURL(b); document.body.appendChild(a); a.click(); document.body.removeChild(a); msg("PNG descargado"); },"image/png"); }
+async function copiarPNG(){ const cv=document.getElementById("cv"); cv.toBlob(async b=>{ if(!b){msg("No se pudo generar la imagen");return;} try{ await navigator.clipboard.write([new ClipboardItem({"image/png":b})]); msg("Imagen copiada · pégala con Ctrl+V"); }catch(e){ msg("Portapapeles no disponible; usa Descargar PNG"); } },"image/png"); }
+function msg(t){ const m=document.getElementById("msg"); m.textContent=t; m.style.color=t.startsWith("No")||t.includes("no disponible")?"#9C2A2A":"#2E7D32"; setTimeout(()=>m.textContent="",4000); }
+
+// ===================== TABS =====================
+function switchTab(t){
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
+  document.getElementById("panel-balance").style.display=t==="balance"?"block":"none";
+  document.getElementById("panel-mnt").style.display=t==="mnt"?"block":"none";
+  if(t==="mnt") renderMnt();
+  if(t==="balance") render();
+}
+
+// ===================== MANTENIMIENTO DE DATOS =====================
+function renderMnt(){
+  const f=(document.getElementById("filtroMnt").value||"").toLowerCase();
+  const rows=[];
+  for(const u of Object.keys(HIDRO)){
+    const info=HIDRO[u];
+    if(!u.includes(f))continue;
+    if(info.cotaDep){ rows.push(`<tr><td>${u}</td><td>Hidro (por cota ${info.cotaDep})</td><td><i style="color:#999">calculado por cota</i></td></tr>`); }
+    else { rows.push(`<tr><td>${u}</td><td>Hidro</td><td><input type="number" step="0.01" value="${info.pmax}" onchange="setHidro('${u}',this.value)"></td></tr>`); }
+  }
+  for(const u of Object.keys(TERMICO)){ if(!u.includes(f))continue; const t=tecnologiaDe(u); rows.push(`<tr><td>${u}</td><td>${t==='geotermica'?'Geotérmica':t==='gnl'?'GNL':'Térmica'}</td><td><input type="number" step="0.01" value="${TERMICO[u]}" onchange="setTerm('${u}',this.value)"></td></tr>`); }
+  for(const u of Object.keys(EOLICO)){ if(!u.includes(f))continue; rows.push(`<tr><td>${u}</td><td>Eólica (CFI)</td><td><input type="number" step="0.001" value="${EOLICO[u]}" onchange="setEol('${u}',this.value)"></td></tr>`); }
+  document.getElementById("mntBody").innerHTML=rows.join("");
+}
+function setHidro(u,v){ HIDRO[u].pmax=parseFloat(v)||0; }
+function setTerm(u,v){ TERMICO[u]=parseFloat(v)||0; }
+function setEol(u,v){ EOLICO[u]=parseFloat(v)||0; }
+function guardarMnt(){
+  const o={hidro:{},term:{},eol:{}};
+  for(const u in HIDRO) if(!HIDRO[u].cotaDep) o.hidro[u]=HIDRO[u].pmax;
+  for(const u in TERMICO) o.term[u]=TERMICO[u];
+  for(const u in EOLICO) o.eol[u]=EOLICO[u];
+  localStorage.setItem("goe_pmax_override",JSON.stringify(o));
+  const m=document.getElementById("msgMnt"); m.textContent="Cambios guardados en este navegador."; m.style.color="#2E7D32"; setTimeout(()=>m.textContent="",4000);
+}
+function restaurarMnt(){
+  localStorage.removeItem("goe_pmax_override");
+  HIDRO=JSON.parse(JSON.stringify(HIDRO_DEF)); TERMICO={...TERMICO_DEF}; EOLICO={...EOLICO_DEF};
+  renderMnt(); const m=document.getElementById("msgMnt"); m.textContent="Valores de fábrica restaurados."; m.style.color="#8a6d1e"; setTimeout(()=>m.textContent="",4000);
+}
+
+// init
+render();
+</script>
+</body>
+</html>
