@@ -64,11 +64,11 @@
       <div class="col">
         <div class="secc">Parámetros de entrada</div>
         <div class="grid2">
-          <div><label>Cota CGRA (msnm)</label><input type="number" step="0.01" id="cotaCGRA" value="237.06" oninput="render()"><div class="nota" id="notaCGRA"></div></div>
-          <div><label>Cota GUAJ (msnm)</label><input type="number" step="0.01" id="cotaGUAJ" value="420.92" oninput="render()"><div class="nota" id="notaGUAJ"></div></div>
+          <div><label>Cota CGRA (msnm)</label><input type="number" step="0.01" id="cotaCGRA" value="236.96" oninput="render()"><div class="nota" id="notaCGRA"></div></div>
+          <div><label>Cota GUAJ (msnm)</label><input type="number" step="0.01" id="cotaGUAJ" value="420.86" oninput="render()"><div class="nota" id="notaGUAJ"></div></div>
           <div><label>Demanda máxima (MW)</label><input type="number" step="1" id="demanda" value="1301" oninput="render()"></div>
           <div><label>Reserva rodante (%)</label><input type="number" step="0.5" id="rrPct" value="7" oninput="render()"><div class="nota" id="notaRR"></div></div>
-          <div style="grid-column:1/-1"><label>Fecha/hora de la demanda máxima</label><input type="text" id="fechaDem" value="22-ago 19:30" oninput="render()"></div>
+          <div style="grid-column:1/-1"><label>Fecha/hora de la demanda máxima</label><input type="text" id="fechaDem" value="20-ago 19:00" oninput="render()"></div>
         </div>
 
         <div class="secc">Unidades indisponibles</div>
@@ -167,7 +167,7 @@ const TECNOS=[
 const CATS={falla:{label:"Falla",color:"#1F3864"},menor:{label:"Menor",color:"#6B8E23"},pamm:{label:"PAMM",color:"#9AA0A6"},antigua:{label:"Fallas antiguas",color:"#CFCFCF"}};
 const ORDEN_CAT=["falla","menor","pamm","antigua"];
 
-const ESTADO_INICIAL={"nepo-m19":"falla","nepo-m21":"falla","nepo-m23":"falla","nepo-m25":"falla","nepo-m26":"falla","nepo-m5":"falla","nepo-m2":"falla","nepo-m18":"falla","nepo-m27":"falla","nepo-m22":"falla","nepo-m24":"falla","nepo-m20":"falla","nepo-m11":"falla","nepo-m3":"falla","hilc-m1":"falla","hilc-m2":"falla","hilc-m3":"falla","hilc-m4":"falla","tpto-m1":"falla","tpto-m3":"falla","text-m4":"falla","text-m5":"falla","soya-m1":"falla","gcsa-m3":"falla","15se-u2":"pamm","nepo-m12":"pamm","berl-u3":"pamm","taln-m2":"pamm","5nov-u5":"pamm","soya-m2":"antigua","5nov-u4":"antigua","acaj-u2":"antigua"};
+const ESTADO_INICIAL={"nepo-m19":"falla","nepo-m21":"falla","nepo-m23":"falla","nepo-m25":"falla","nepo-m26":"falla","nepo-m5":"falla","nepo-m2":"falla","nepo-m18":"falla","nepo-m27":"falla","nepo-m22":"falla","nepo-m24":"falla","nepo-m20":"falla","nepo-m11":"falla","nepo-m3":"falla","hilc-m4":"falla","tpto-m4":"falla","text-m4":"falla","text-m5":"falla","soya-m1":"falla","gcsa-m3":"falla","edp-m17":"menor","15se-u2":"pamm","nepo-m12":"pamm","berl-u3":"pamm","taln-m2":"pamm","5nov-u5":"pamm","soya-m2":"antigua","5nov-u4":"antigua","acaj-u2":"antigua"};
 let indisp={...ESTADO_INICIAL};
 
 // ===================== CÁLCULO =====================
@@ -336,3 +336,4 @@ render();
 </script>
 </body>
 </html>
+
