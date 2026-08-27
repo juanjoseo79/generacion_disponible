@@ -253,7 +253,7 @@ function dibujar(scale){
   lx+=24;
   for(const s of segInd){ ctx.fillStyle=s.c; ctx.fillRect(lx,yLeg-9,11,11); ctx.fillStyle="#333"; ctx.fillText(s.n,lx+14,yLeg); lx+=14+ctx.measureText(s.n).width+12; }
 
-  return {dispR,indR,baseR,margenMW,margenPct,F,M,P,A};
+  return {dispR,indR,baseR,margenMW,margenPct,F,M,P,A,Fraw:c.F,Mraw:c.M,Praw:c.P,Araw:c.A};
 }
 
 // ===================== RENDER UI =====================
@@ -271,10 +271,10 @@ function render(){
     kpi("Disponible",r.dispR+" MW","#2E7D32")+
     kpi("Margen reserva",r.margenMW+" MW",r.margenPct<7?"#9C2A2A":"#1F3864",r.margenPct.toFixed(1)+" %");
   document.getElementById("kpisRubro").innerHTML=
-    kpim("Fallas",Math.round(r.F)+" MW","#1F3864")+
-    kpim("Menores",Math.round(r.M)+" MW","#6B8E23")+
-    kpim("PAMM",Math.round(r.P)+" MW","#707070")+
-    kpim("Fallas antiguas",Math.round(r.A)+" MW","#999999");
+    kpim("Fallas",r.Fraw.toFixed(1)+" MW","#1F3864")+
+    kpim("Menores",r.Mraw.toFixed(1)+" MW","#6B8E23")+
+    kpim("PAMM",r.Praw.toFixed(1)+" MW","#707070")+
+    kpim("Fallas antiguas",r.Araw.toFixed(1)+" MW","#999999");
   renderList(); renderChips();
 }
 function kpi(l,v,color="#1F3864",s=""){ return `<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${color}">${v}</div>${s?`<div class="s" style="color:${color}">${s}</div>`:""}</div>`; }
