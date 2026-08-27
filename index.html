@@ -24,6 +24,9 @@
   .nota{ font-size:10px; color:#2E7D32; margin-top:2px; }
   .kpis{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
   .kpi{ flex:1 1 120px; border:1px solid #e0e6f2; border-radius:4px; padding:8px 10px; background:#fafbfe; }
+  .kpim{ flex:1 1 90px; border:1px solid #eef0f4; border-radius:4px; padding:5px 8px; background:#fcfcfd; }
+  .kpim .l{ font-size:9px; color:#888; }
+  .kpim .v{ font-size:12.5px; font-weight:bold; }
   .kpi .l{ font-size:10px; color:#777; margin-bottom:3px; }
   .kpi .v{ font-size:16px; font-weight:bold; color:var(--navy); }
   .kpi .s{ font-size:12px; font-weight:bold; }
@@ -81,6 +84,7 @@
       <div class="col">
         <div class="secc">Resultado</div>
         <div class="kpis" id="kpis"></div>
+        <div class="kpis" id="kpisRubro" style="margin-top:-4px"></div>
         <canvas id="cv" width="780" height="225"></canvas>
         <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn" onclick="descargarPNG()">Descargar PNG</button>
@@ -167,7 +171,7 @@ const TECNOS=[
 const CATS={falla:{label:"Falla",color:"#1F3864"},menor:{label:"Menor",color:"#6B8E23"},pamm:{label:"PAMM",color:"#9AA0A6"},antigua:{label:"Fallas antiguas",color:"#CFCFCF"}};
 const ORDEN_CAT=["falla","menor","pamm","antigua"];
 
-const ESTADO_INICIAL={"nepo-m19":"falla","nepo-m21":"falla","nepo-m23":"falla","nepo-m25":"falla","nepo-m26":"falla","nepo-m5":"falla","nepo-m2":"falla","nepo-m18":"falla","nepo-m27":"falla","nepo-m22":"falla","nepo-m24":"falla","nepo-m20":"falla","nepo-m11":"falla","nepo-m3":"falla","hilc-m2":"falla","hilc-m4":"falla","tpto-m3":"falla","tpto-m4":"falla","text-m4":"falla","text-m5":"falla","soya-m1":"falla","gcsa-m3":"falla","15se-u2":"pamm","nepo-m12":"pamm","berl-u3":"pamm","taln-m2":"pamm","5nov-u5":"pamm","soya-m2":"antigua","5nov-u4":"antigua","acaj-u2":"antigua"};
+const ESTADO_INICIAL={"nepo-m23":"falla","nepo-m5":"falla","nepo-m18":"falla","nepo-m27":"falla","nepo-m22":"falla","nepo-m20":"falla","nepo-m11":"falla","nepo-m3":"falla","nepo-m7":"falla","hilc-m1":"falla","hilc-m2":"falla","hilc-m3":"falla","hilc-m4":"falla","tpto-m3":"falla","tpto-m4":"falla","text-m4":"falla","text-m5":"falla","acaj-m9":"falla","soya-m1":"falla","gcsa-m3":"falla","15se-u2":"pamm","nepo-m12":"pamm","berl-u3":"pamm","taln-m2":"pamm","5nov-u5":"pamm","soya-m2":"antigua","5nov-u4":"antigua","acaj-u2":"antigua"};
 let indisp={...ESTADO_INICIAL};
 
 // ===================== CÁLCULO =====================
@@ -249,7 +253,7 @@ function dibujar(scale){
   lx+=24;
   for(const s of segInd){ ctx.fillStyle=s.c; ctx.fillRect(lx,yLeg-9,11,11); ctx.fillStyle="#333"; ctx.fillText(s.n,lx+14,yLeg); lx+=14+ctx.measureText(s.n).width+12; }
 
-  return {dispR,indR,baseR,margenMW,margenPct};
+  return {dispR,indR,baseR,margenMW,margenPct,F,M,P,A};
 }
 
 // ===================== RENDER UI =====================
@@ -266,9 +270,15 @@ function render(){
     kpi("Capacidad nocturna",r.baseR+" MW")+
     kpi("Disponible",r.dispR+" MW","#2E7D32")+
     kpi("Margen reserva",r.margenMW+" MW",r.margenPct<7?"#9C2A2A":"#1F3864",r.margenPct.toFixed(1)+" %");
+  document.getElementById("kpisRubro").innerHTML=
+    kpim("Fallas",Math.round(r.F)+" MW","#1F3864")+
+    kpim("Menores",Math.round(r.M)+" MW","#6B8E23")+
+    kpim("PAMM",Math.round(r.P)+" MW","#707070")+
+    kpim("Fallas antiguas",Math.round(r.A)+" MW","#999999");
   renderList(); renderChips();
 }
 function kpi(l,v,color="#1F3864",s=""){ return `<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${color}">${v}</div>${s?`<div class="s" style="color:${color}">${s}</div>`:""}</div>`; }
+function kpim(l,v,color="#1F3864"){ return `<div class="kpim"><div class="l">${l}</div><div class="v" style="color:${color}">${v}</div></div>`; }
 function renderChips(){
   const cont={falla:0,menor:0,pamm:0,antigua:0}; for(const u in indisp) if(cont[indisp[u]]!=null) cont[indisp[u]]++;
   document.getElementById("chips").innerHTML=ORDEN_CAT.map(c=>`<span class="chip" style="background:${CATS[c].color};color:${c==='antigua'?'#333':'#fff'}">${CATS[c].label}: ${cont[c]}</span>`).join("");
