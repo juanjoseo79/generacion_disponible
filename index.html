@@ -67,8 +67,8 @@
       <div class="col">
         <div class="secc">Parámetros de entrada</div>
         <div class="grid2">
-          <div><label>Cota CGRA (msnm)</label><input type="number" step="0.01" id="cotaCGRA" value="236.92" oninput="render()"><div class="nota" id="notaCGRA"></div></div>
-          <div><label>Cota GUAJ (msnm)</label><input type="number" step="0.01" id="cotaGUAJ" value="420.83" oninput="render()"><div class="nota" id="notaGUAJ"></div></div>
+          <div><label>Cota CGRA (msnm)</label><input type="number" step="0.01" id="cotaCGRA" value="239.73" oninput="render()"><div class="nota" id="notaCGRA"></div></div>
+          <div><label>Cota GUAJ (msnm)</label><input type="number" step="0.01" id="cotaGUAJ" value="421.82" oninput="render()"><div class="nota" id="notaGUAJ"></div></div>
           <div><label>Demanda máxima (MW)</label><input type="number" step="1" id="demanda" value="1301" oninput="render()"></div>
           <div><label>Reserva rodante (%)</label><input type="number" step="0.5" id="rrPct" value="7" oninput="render()"><div class="nota" id="notaRR"></div></div>
           <div style="grid-column:1/-1"><label>Fecha/hora de la demanda máxima</label><input type="text" id="fechaDem" value="20-ago 19:00" oninput="render()"></div>
@@ -138,7 +138,7 @@ const CURVA_GUAJ=[[428.0,430.3,19.8],[427.0,428.0,19.0],[424.97,427.0,18.0],[423
 const TERMICO_DEF={
   "acaj-m1":16.2,"acaj-m2":16.2,"acaj-m3":16.2,"acaj-m4":16.2,"acaj-m5":15.7,"acaj-m6":16.2,"acaj-m7":16.5,"acaj-m8":16.5,"acaj-m9":16.5,
   "acaj-u1":23.2,"acaj-u2":25.7,"acaj-u4":27.7,"acaj-u5":64.2,
-  "ahua-u1":22.5,"ahua-u2":22.4,"ahua-u3":29.3,"berl-u1":26.5,"berl-u2":26.1,"berl-u3":32.5,"berl-u4":6.3,"berl-u5":5.3,
+  "ahua-u1":22.5,"ahua-u2":22.4,"ahua-u3":29.3,"berl-u1":27.5,"berl-u2":27.1,"berl-u3":41.5,"berl-u4":6.3,"berl-u5":5.3,
   "bore-m1":1.6,"bore-m2":1.6,"bore-m3":1.6,"bore-m4":1.6,"bore-m5":1.6,"bore-m6":1.6,"bore-m7":1.6,"bore-m8":1.6,
   "edp-m1":18.6,"edp-m2":18.6,"edp-m3":18.6,"edp-m4":18.6,"edp-m5":18.6,"edp-m6":18.6,"edp-m7":18.6,"edp-m8":18.6,"edp-m9":18.6,"edp-m10":18.6,"edp-m11":18.6,"edp-m12":18.6,"edp-m13":18.6,"edp-m14":18.6,"edp-m15":18.6,"edp-m16":18.6,"edp-m17":18.6,"edp-m18":18.6,"edp-m19":18.6,"edp-u1":28.3,
   "gcsa-m1":3.7,"gcsa-m2":3.7,"gcsa-m3":3.7,"hilc-m1":1.6,"hilc-m2":1.6,"hilc-m3":1.6,"hilc-m4":1.6,"holc-m1":6.5,
@@ -171,7 +171,7 @@ const TECNOS=[
 const CATS={falla:{label:"Falla",color:"#1F3864"},menor:{label:"Menor",color:"#6B8E23"},pamm:{label:"PAMM",color:"#9AA0A6"},antigua:{label:"Fallas antiguas",color:"#CFCFCF"}};
 const ORDEN_CAT=["falla","menor","pamm","antigua"];
 
-const ESTADO_INICIAL={"nepo-m23":"falla","nepo-m5":"falla","nepo-m18":"falla","nepo-m27":"falla","nepo-m22":"falla","nepo-m20":"falla","nepo-m11":"falla","nepo-m3":"falla","nepo-m7":"falla","hilc-m1":"falla","hilc-m2":"falla","hilc-m3":"falla","hilc-m4":"falla","tpto-m3":"falla","tpto-m4":"falla","text-m4":"falla","text-m5":"falla","acaj-m9":"falla","soya-m1":"falla","gcsa-m3":"falla","15se-u2":"pamm","nepo-m12":"pamm","berl-u3":"pamm","taln-m2":"pamm","5nov-u5":"pamm","soya-m2":"antigua","5nov-u4":"antigua","acaj-u2":"antigua"};
+const ESTADO_INICIAL={"gcsa-m3":"falla","15se-u2":"pamm","nepo-m12":"pamm","soya-m2":"antigua","5nov-u4":"antigua","acaj-u2":"antigua"};
 let indisp={...ESTADO_INICIAL};
 
 // ===================== CÁLCULO =====================
