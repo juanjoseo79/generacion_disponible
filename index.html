@@ -99,7 +99,8 @@
             <option value="6">Muy alta</option>
           </select>
         </div>
-        <div class="foot">Base en PMAX (hidro, térmica, GNL, geotérmica) y CFI para eólica. CGRA y GUAJ ajustadas por cota actual. Excluye FV e ingenios (fuera de zafra). Margen de reserva = (Disponible − Demanda) / Disponible.</div>
+        <div class="nota" id="notaZafra" style="font-size:11px;margin-top:10px"></div>
+        <div class="foot">Base en PMAX (hidro, térmica, GNL, geotérmica) y CFI para eólica. CGRA y GUAJ ajustadas por cota actual. Excluye FV. Los ingenios (biomasa) solo se incluyen si se declaran disponibles por zafra en la pestaña Mantenimiento de datos. Margen de reserva = (Disponible − Demanda) / Disponible.</div>
       </div>
     </div>
   </div>
@@ -108,7 +109,7 @@
   <div class="panel" id="panel-mnt" style="display:none">
     <div class="secc">Mantenimiento de datos técnicos (PMAX / CFI por unidad)</div>
     <div style="font-size:12px;color:#555;margin-bottom:10px">
-      Edite la potencia por unidad. Hidro se toma como PMAX; térmica/GNL/geotérmica como PMAX; eólica como CFI. CGRA y GUAJ se calculan por cota (no editables aquí; use la pestaña Balance). Los cambios se guardan en este navegador.
+      Edite la potencia por unidad. Hidro se toma como PMAX; térmica/GNL/geotérmica como PMAX; eólica como CFI. CGRA y GUAJ se calculan por cota (no editables aquí; use la pestaña Balance). Los ingenios azucareros (biomasa) se incluyen en el balance solo si se marca la casilla «Zafra»; su potencia es editable. Los cambios se guardan en este navegador.
       <span class="warn">Cambiar estos valores altera todos los cálculos.</span>
     </div>
     <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap">
@@ -119,7 +120,7 @@
     </div>
     <div class="mnt-wrap">
       <table class="mnt">
-        <thead><tr><th>Unidad</th><th>Tecnología</th><th>PMAX/CFI (MW)</th></tr></thead>
+        <thead><tr><th>Unidad</th><th>Tecnología</th><th>PMAX/CFI (MW)</th><th style="text-align:center">Disponible por zafra</th></tr></thead>
         <tbody id="mntBody"></tbody>
       </table>
     </div>
@@ -149,15 +150,19 @@ const TERMICO_DEF={
   "tpto-m1":18,"tpto-m2":18,"tpto-m3":18,"tpto-m4":18
 };
 const EOLICO_DEF={"vent-g1":15.858};
+// Ingenios azucareros (biomasa): solo cuentan en el balance si se declaran disponibles por zafra
+const ZAFRA_DEF={"cassa-g1":26,"chap-g1":36.3,"jibo-g1":30.7,"lang-g1":45.8,"lcab-g1":14.9};
 
 // overrides desde localStorage
-let HIDRO=JSON.parse(JSON.stringify(HIDRO_DEF)), TERMICO={...TERMICO_DEF}, EOLICO={...EOLICO_DEF};
+let HIDRO=JSON.parse(JSON.stringify(HIDRO_DEF)), TERMICO={...TERMICO_DEF}, EOLICO={...EOLICO_DEF}, ZAFRA={...ZAFRA_DEF}, ZAFRA_ON={};
 (function loadOverrides(){
   try{
     const o=JSON.parse(localStorage.getItem("goe_pmax_override")||"null");
     if(o){ for(const k in o.hidro||{}) if(HIDRO[k]) HIDRO[k].pmax=o.hidro[k];
            for(const k in o.term||{}) TERMICO[k]=o.term[k];
-           for(const k in o.eol||{}) EOLICO[k]=o.eol[k]; }
+           for(const k in o.eol||{}) EOLICO[k]=o.eol[k];
+           for(const k in o.zafra||{}) if(k in ZAFRA) ZAFRA[k]=o.zafra[k];
+           for(const k in o.zafraOn||{}) if(k in ZAFRA) ZAFRA_ON[k]=!!o.zafraOn[k]; }
   }catch(e){}
 })();
 
@@ -166,7 +171,8 @@ const TECNOS=[
   {key:"geotermica",label:"Geotérmica",color:"#E08A2E"},
   {key:"hidro",label:"Hidro",color:"#1F5FA8"},
   {key:"gnl",label:"GNL",color:"#D98BB5"},
-  {key:"termica",label:"Térmica",color:"#B0453A"}
+  {key:"termica",label:"Térmica",color:"#B0453A"},
+  {key:"biomasa",label:"Biomasa",color:"#6FBF8E"}
 ];
 const CATS={falla:{label:"Falla",color:"#1F3864"},menor:{label:"Menor",color:"#6B8E23"},pamm:{label:"PAMM",color:"#9AA0A6"},antigua:{label:"Fallas antiguas",color:"#CFCFCF"}};
 const ORDEN_CAT=["falla","menor","pamm","antigua"];
@@ -178,18 +184,20 @@ let indisp={...ESTADO_INICIAL};
 function pmaxCGRA(c){const t=CURVA_CGRA;if(c<=t[0][0])return t[0][1];if(c>=t[t.length-1][0])return t[t.length-1][1];for(let i=0;i<t.length-1;i++){const[c0,p0]=t[i],[c1,p1]=t[i+1];if(c>=c0&&c<=c1)return p0+((p1-p0)*(c-c0))/(c1-c0);}return t[t.length-1][1];}
 function pmaxGUAJ(c){for(const[inf,sup,p]of CURVA_GUAJ){if(c>=inf&&c<=sup)return p;}return c>430.3?19.8:10.0;}
 function cotas(){return{CGRA:parseFloat(document.getElementById("cotaCGRA").value)||0,GUAJ:parseFloat(document.getElementById("cotaGUAJ").value)||0};}
-function tecnologiaDe(u){ if(HIDRO[u])return"hidro"; if(EOLICO[u])return"eolica"; if(/^ahua-/.test(u)||/^berl-/.test(u))return"geotermica"; if(/^edp-/.test(u))return"gnl"; if(TERMICO[u])return"termica"; return"termica"; }
+function tecnologiaDe(u){ if(u in ZAFRA)return"biomasa"; if(HIDRO[u])return"hidro"; if(EOLICO[u])return"eolica"; if(/^ahua-/.test(u)||/^berl-/.test(u))return"geotermica"; if(/^edp-/.test(u))return"gnl"; if(TERMICO[u])return"termica"; return"termica"; }
 function valorUnidad(u){ const ct=cotas();
   if(HIDRO[u]){ const info=HIDRO[u]; if(info.cotaDep==="CGRA")return pmaxCGRA(ct.CGRA); if(info.cotaDep==="GUAJ")return pmaxGUAJ(ct.GUAJ); return info.pmax; }
+  if(u in ZAFRA)return ZAFRA_ON[u]?ZAFRA[u]:0;
   if(TERMICO[u])return TERMICO[u]; if(EOLICO[u])return EOLICO[u]; return 0; }
-function todasUnidades(){ return [...Object.keys(HIDRO),...Object.keys(TERMICO),...Object.keys(EOLICO)]; }
+function ingeniosActivos(){ return Object.keys(ZAFRA).filter(u=>ZAFRA_ON[u]); }
+function todasUnidades(){ return [...Object.keys(HIDRO),...Object.keys(TERMICO),...Object.keys(EOLICO),...ingeniosActivos()]; }
 
 function calcular(){
-  const baseTec={eolica:0,geotermica:0,hidro:0,gnl:0,termica:0};
-  const indTec={eolica:0,geotermica:0,hidro:0,gnl:0,termica:0};
+  const baseTec={eolica:0,geotermica:0,hidro:0,gnl:0,termica:0,biomasa:0};
+  const indTec={eolica:0,geotermica:0,hidro:0,gnl:0,termica:0,biomasa:0};
   for(const u of todasUnidades()){ baseTec[tecnologiaDe(u)]+=valorUnidad(u); }
   let F=0,M=0,P=0,A=0;
-  for(const u in indisp){ const v=valorUnidad(u); const t=tecnologiaDe(u); indTec[t]+=v;
+  for(const u in indisp){ if((u in ZAFRA)&&!ZAFRA_ON[u])continue; const v=valorUnidad(u); const t=tecnologiaDe(u); indTec[t]+=v;
     const c=indisp[u]; if(c==="falla")F+=v; else if(c==="menor")M+=v; else if(c==="pamm")P+=v; else if(c==="antigua")A+=v; }
   const dispTec={}; for(const t in baseTec) dispTec[t]=baseTec[t]-indTec[t];
   const dem=parseFloat(document.getElementById("demanda").value)||0;
@@ -249,7 +257,7 @@ function dibujar(scale){
   ctx.fillStyle="#9C2A2A"; ctx.font="bold 10px Arial"; ctx.textAlign="center"; ctx.fillText("Margen de reserva "+margenMW+" MW ("+margenPct.toFixed(1)+" %)",demX,24);
   // leyenda
   const yLeg=176; ctx.font="8.5px Arial"; ctx.textAlign="left"; let lx=mx;
-  for(const s of segTec){ ctx.fillStyle=s.c; ctx.fillRect(lx,yLeg-9,11,11); ctx.fillStyle="#333"; ctx.fillText(s.n,lx+14,yLeg); lx+=14+ctx.measureText(s.n).width+12; }
+  for(const s of segTec){ if(s.n==="Biomasa"&&!s.v)continue; ctx.fillStyle=s.c; ctx.fillRect(lx,yLeg-9,11,11); ctx.fillStyle="#333"; ctx.fillText(s.n,lx+14,yLeg); lx+=14+ctx.measureText(s.n).width+12; }
   lx+=24;
   for(const s of segInd){ ctx.fillStyle=s.c; ctx.fillRect(lx,yLeg-9,11,11); ctx.fillStyle="#333"; ctx.fillText(s.n,lx+14,yLeg); lx+=14+ctx.measureText(s.n).width+12; }
 
@@ -266,6 +274,9 @@ function render(){
   const rrPct=parseFloat(document.getElementById("rrPct").value)||0;
   document.getElementById("notaRR").textContent=(rrPct/100*dem).toFixed(1)+" MW";
   const r=dibujar(scale);
+  const ia=ingeniosActivos(), nz=document.getElementById("notaZafra");
+  nz.textContent=ia.length?("Ingenios en zafra incluidos: "+ia.map(u=>u.split("-")[0].toUpperCase()).join(", ")+" ("+ia.reduce((a,u)=>a+ZAFRA[u],0).toFixed(1)+" MW)"):"Ingenios: ninguno declarado disponible (fuera de zafra).";
+  nz.style.color=ia.length?"#2E7D32":"#777";
   document.getElementById("kpis").innerHTML=
     kpi("Capacidad nocturna",r.baseR+" MW")+
     kpi("Disponible",r.dispR+" MW","#2E7D32")+
@@ -280,7 +291,7 @@ function render(){
 function kpi(l,v,color="#1F3864",s=""){ return `<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${color}">${v}</div>${s?`<div class="s" style="color:${color}">${s}</div>`:""}</div>`; }
 function kpim(l,v,color="#1F3864"){ return `<div class="kpim"><div class="l">${l}</div><div class="v" style="color:${color}">${v}</div></div>`; }
 function renderChips(){
-  const cont={falla:0,menor:0,pamm:0,antigua:0}; for(const u in indisp) if(cont[indisp[u]]!=null) cont[indisp[u]]++;
+  const cont={falla:0,menor:0,pamm:0,antigua:0}; for(const u in indisp) if(cont[indisp[u]]!=null && !((u in ZAFRA)&&!ZAFRA_ON[u])) cont[indisp[u]]++;
   document.getElementById("chips").innerHTML=ORDEN_CAT.map(c=>`<span class="chip" style="background:${CATS[c].color};color:${c==='antigua'?'#333':'#fff'}">${CATS[c].label}: ${cont[c]}</span>`).join("");
 }
 function renderList(){
@@ -317,27 +328,31 @@ function renderMnt(){
   for(const u of Object.keys(HIDRO)){
     const info=HIDRO[u];
     if(!u.includes(f))continue;
-    if(info.cotaDep){ rows.push(`<tr><td>${u}</td><td>Hidro (por cota ${info.cotaDep})</td><td><i style="color:#999">calculado por cota</i></td></tr>`); }
-    else { rows.push(`<tr><td>${u}</td><td>Hidro</td><td><input type="number" step="0.01" value="${info.pmax}" onchange="setHidro('${u}',this.value)"></td></tr>`); }
+    if(info.cotaDep){ rows.push(`<tr><td>${u}</td><td>Hidro (por cota ${info.cotaDep})</td><td><i style="color:#999">calculado por cota</i></td><td></td></tr>`); }
+    else { rows.push(`<tr><td>${u}</td><td>Hidro</td><td><input type="number" step="0.01" value="${info.pmax}" onchange="setHidro('${u}',this.value)"></td><td></td></tr>`); }
   }
-  for(const u of Object.keys(TERMICO)){ if(!u.includes(f))continue; const t=tecnologiaDe(u); rows.push(`<tr><td>${u}</td><td>${t==='geotermica'?'Geotérmica':t==='gnl'?'GNL':'Térmica'}</td><td><input type="number" step="0.01" value="${TERMICO[u]}" onchange="setTerm('${u}',this.value)"></td></tr>`); }
-  for(const u of Object.keys(EOLICO)){ if(!u.includes(f))continue; rows.push(`<tr><td>${u}</td><td>Eólica (CFI)</td><td><input type="number" step="0.001" value="${EOLICO[u]}" onchange="setEol('${u}',this.value)"></td></tr>`); }
+  for(const u of Object.keys(TERMICO)){ if(!u.includes(f))continue; const t=tecnologiaDe(u); rows.push(`<tr><td>${u}</td><td>${t==='geotermica'?'Geotérmica':t==='gnl'?'GNL':'Térmica'}</td><td><input type="number" step="0.01" value="${TERMICO[u]}" onchange="setTerm('${u}',this.value)"></td><td></td></tr>`); }
+  for(const u of Object.keys(EOLICO)){ if(!u.includes(f))continue; rows.push(`<tr><td>${u}</td><td>Eólica (CFI)</td><td><input type="number" step="0.001" value="${EOLICO[u]}" onchange="setEol('${u}',this.value)"></td><td></td></tr>`); }
+  for(const u of Object.keys(ZAFRA)){ if(!u.includes(f))continue; rows.push(`<tr style="background:${ZAFRA_ON[u]?'#f1f9f4':'transparent'}"><td>${u}</td><td>Biomasa (ingenio)</td><td><input type="number" step="0.1" value="${ZAFRA[u]}" onchange="setZafra('${u}',this.value)"></td><td style="text-align:center"><input type="checkbox" style="width:auto;accent-color:#2E7D32" ${ZAFRA_ON[u]?'checked':''} onchange="setZafraOn('${u}',this.checked)"></td></tr>`); }
   document.getElementById("mntBody").innerHTML=rows.join("");
 }
 function setHidro(u,v){ HIDRO[u].pmax=parseFloat(v)||0; }
 function setTerm(u,v){ TERMICO[u]=parseFloat(v)||0; }
 function setEol(u,v){ EOLICO[u]=parseFloat(v)||0; }
+function setZafra(u,v){ ZAFRA[u]=parseFloat(v)||0; }
+function setZafraOn(u,b){ ZAFRA_ON[u]=b; if(!b) delete indisp[u]; renderMnt(); }
 function guardarMnt(){
-  const o={hidro:{},term:{},eol:{}};
+  const o={hidro:{},term:{},eol:{},zafra:{},zafraOn:{}};
   for(const u in HIDRO) if(!HIDRO[u].cotaDep) o.hidro[u]=HIDRO[u].pmax;
   for(const u in TERMICO) o.term[u]=TERMICO[u];
   for(const u in EOLICO) o.eol[u]=EOLICO[u];
+  for(const u in ZAFRA){ o.zafra[u]=ZAFRA[u]; o.zafraOn[u]=!!ZAFRA_ON[u]; }
   localStorage.setItem("goe_pmax_override",JSON.stringify(o));
   const m=document.getElementById("msgMnt"); m.textContent="Cambios guardados en este navegador."; m.style.color="#2E7D32"; setTimeout(()=>m.textContent="",4000);
 }
 function restaurarMnt(){
   localStorage.removeItem("goe_pmax_override");
-  HIDRO=JSON.parse(JSON.stringify(HIDRO_DEF)); TERMICO={...TERMICO_DEF}; EOLICO={...EOLICO_DEF};
+  HIDRO=JSON.parse(JSON.stringify(HIDRO_DEF)); TERMICO={...TERMICO_DEF}; EOLICO={...EOLICO_DEF}; ZAFRA={...ZAFRA_DEF}; ZAFRA_ON={};
   renderMnt(); const m=document.getElementById("msgMnt"); m.textContent="Valores de fábrica restaurados."; m.style.color="#8a6d1e"; setTimeout(()=>m.textContent="",4000);
 }
 
