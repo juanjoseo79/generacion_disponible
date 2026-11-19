@@ -296,16 +296,18 @@ function renderChips(){
 }
 function renderList(){
   const f=(document.getElementById("filtro").value||"").toLowerCase();
-  const us=todasUnidades().filter(u=>u.includes(f));
+  const us=[...todasUnidades().filter(u=>!(u in ZAFRA)),...Object.keys(ZAFRA)].filter(u=>u.includes(f));
   let html=`<div class="lhead"><span style="flex:1">Unidad · MW</span>`+ORDEN_CAT.map(c=>`<span style="width:46px;text-align:center">${CATS[c].label}</span>`).join("")+`</div>`;
   for(const u of us){
-    html+=`<div class="lrow ${indisp[u]?'on':''}"><span class="u" style="font-weight:${indisp[u]?'bold':'normal'}">${u} <span style="color:#888;font-weight:normal">· ${valorUnidad(u).toFixed(1)}</span></span>`;
-    for(const c of ORDEN_CAT){ html+=`<span class="cbx"><input type="checkbox" ${indisp[u]===c?'checked':''} onchange="toggleCat('${u}','${c}')" style="accent-color:${CATS[c].color}"></span>`; }
+    const ing=(u in ZAFRA), off=ing&&!ZAFRA_ON[u];
+    const zf=ing?` <label style="display:inline;font-size:10px;color:#2E7D32;margin-left:6px;cursor:pointer"><input type="checkbox" style="width:auto;vertical-align:middle;accent-color:#2E7D32" ${ZAFRA_ON[u]?'checked':''} onchange="setZafraOn('${u}',this.checked);render()"> zafra</label>`:'';
+    html+=`<div class="lrow ${indisp[u]?'on':''}" style="${off?'opacity:.55':''}"><span class="u" style="font-weight:${indisp[u]?'bold':'normal'}">${u} <span style="color:#888;font-weight:normal">· ${(ing?ZAFRA[u]:valorUnidad(u)).toFixed(1)}</span>${zf}</span>`;
+    for(const c of ORDEN_CAT){ html+=`<span class="cbx"><input type="checkbox" ${indisp[u]===c?'checked':''} ${(off||(ing&&(c==='pamm'||c==='antigua')))?'disabled':''} onchange="toggleCat('${u}','${c}')" style="accent-color:${CATS[c].color}"></span>`; }
     html+=`</div>`;
   }
   document.getElementById("list").innerHTML=html;
 }
-function toggleCat(u,c){ if(indisp[u]===c) delete indisp[u]; else indisp[u]=c; render(); }
+function toggleCat(u,c){ if((u in ZAFRA)&&(!ZAFRA_ON[u]||c==='pamm'||c==='antigua'))return; if(indisp[u]===c) delete indisp[u]; else indisp[u]=c; render(); }
 
 // ===================== EXPORTAR =====================
 function descargarPNG(){ const cv=document.getElementById("cv"); cv.toBlob(b=>{ if(!b){msg("No se pudo generar el PNG");return;} const a=document.createElement("a"); a.download="balance_capacidad.png"; a.href=URL.createObjectURL(b); document.body.appendChild(a); a.click(); document.body.removeChild(a); msg("PNG descargado"); },"image/png"); }
